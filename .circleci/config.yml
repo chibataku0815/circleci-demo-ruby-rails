@@ -51,6 +51,7 @@ jobs:
             DATABASE_USER: root
             DATABASE_HOST: circlehost
           command: |
+            bin/rails db:create
 
       # テストの実行
       - run:
