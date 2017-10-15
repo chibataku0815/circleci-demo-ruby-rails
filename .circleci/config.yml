@@ -52,7 +52,6 @@ jobs:
             DATABASE_USER: root
             DATABASE_HOST: circlehost
           command: |
-            config/database.yml
             bin/rails db:create
             bin/rails db:migrate
 
