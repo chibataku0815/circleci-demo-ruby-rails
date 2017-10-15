@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: /root/my-project
+    working_directory: /app
 
     # ここは1.0でもあった実行対象ブランチ設定
     branches:
@@ -52,7 +52,7 @@ jobs:
             DATABASE_USER: root
             DATABASE_HOST: circlehost
           command: |
-            mv config/database.ci.yml config/database.yml
+            config/database.yml
             bin/rails db:create
             bin/rails db:migrate
 
