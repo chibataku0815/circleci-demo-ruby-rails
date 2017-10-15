@@ -11,7 +11,7 @@ jobs:
         - POSTGRES_USER=ubuntu
         - POSTGRES_DB=myapp_test
     # ディレクトリ情報を移動（こうしないとエラーになる）
-    working_directory: ~/
+    working_directory: ~/circleci-demo-ruby-rails 
     steps:
       - checkout
 
