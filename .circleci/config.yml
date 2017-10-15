@@ -33,20 +33,20 @@ jobs:
             - ./venv
           key: v1-dependencies-{{ checksum "Gemfile.lock" }}
 
-      # Rubocop Check
-      - run:
-          name: RuboCop Style Check
-          command: bundle exec rubocop
-
-      # Haml Check
-      - run:
-          name: Haml-Linter Style Check
-          command: bundle exec haml-lint app/views/
-
-      # SCSS Check
-      - run:
-          name: SCSS-Linter Style Check
-          command: bundle exec scss-lint app/assets/
+      # # Rubocop Check
+      # - run:
+      #     name: RuboCop Style Check
+      #     command: bundle exec rubocop
+      #
+      # # Haml Check
+      # - run:
+      #     name: Haml-Linter Style Check
+      #     command: bundle exec haml-lint app/views/
+      #
+      # # SCSS Check
+      # - run:
+      #     name: SCSS-Linter Style Check
+      #     command: bundle exec scss-lint app/assets/
 
       # Database setup
       - run:

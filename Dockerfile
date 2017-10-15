@@ -10,6 +10,8 @@ RUN gem install bundler \
   && rm /usr/lib/libmysqld* \
   && echo 'gem: --no-document' > /etc/gemrc
 
+RUN gem install rubocop -v ${version}
+
 WORKDIR /tmp
 COPY Gemfile Gemfile
 COPY Gemfile.lock Gemfile.lock
