@@ -10,7 +10,7 @@ services:
     command: sh -c 'rm tmp/pids/server.pid'
     build: .
     volumes:
-      - .:~/app
+      - .:/app
     ports:
       - "3000:3000"
 
@@ -18,11 +18,11 @@ services:
     build: .
     command: docker/run.sh spring
     user: "${uid}:${gid}"
-    working_dir: ~/app
+    working_dir: /app
     environment:
       RACK_ENV: 'development'
     volumes:
-      - .:~/app
+      - .:/app
 
   web:
     build: .
@@ -30,11 +30,11 @@ services:
     # vagrant上はこちらを使用
     command: bundle exec rails s
     user: "${uid}:${gid}"
-    working_dir: ~/app
+    working_dir: /app
     environment:
       RACK_ENV: 'development'
     volumes:
-      - .:~/app
+      - .:/app
     ports:
       - "3000:3000"
     depends_on:
