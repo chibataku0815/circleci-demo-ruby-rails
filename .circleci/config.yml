@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: ~/app
     docker:
-      - image: alienfast/ruby:latest
+      - image: circleci/ruby:2.4.1-node
         env:
           - RAILS_ENV=test
       - image: library/mysql:latest
