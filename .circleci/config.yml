@@ -1,13 +1,17 @@
 version: 2
 jobs:
   build:
-    parallelism: 3
-    working_directory: ~/circleci-demo-ruby-rails
     docker:
-      - image: circleci/ruby:2.4.1
+      - image: circleci/ruby:2.4.1-node
         environment:
           RAILS_ENV: test
-      - image: circleci/postgres
+      - image: circleci/postgres:9.4.12-alpine
+        # 環境情報を追加
+        environment:
+        - POSTGRES_USER=ubuntu
+        - POSTGRES_DB=myapp_test
+    # ディレクトリ情報を移動（こうしないとエラーになる）
+    working_directory: ~/myapp
     steps:
       - checkout
 
@@ -25,17 +29,29 @@ jobs:
             - vendor/bundle
 
       # Database setup
-      - run: bundle exec rake db:create
-      - run: bundle exec rake db:schema:load
+      # DBのセットアップを修正
+      - run:
+          name: Database setup
+          command: |
+            bundle exec rake db:create db:schema:load --trace
+            bundle exec rake db:migrate
+          environment:
+            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
 
-      # Run rspec in parallel
-      - type: shell
-        command: |
-          bundle exec rspec --profile 10 \
+      # run tests!
+      # RSpecの実行も修正
+      - run:
+          name: run tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
+            bundle exec rspec --format progress \
                             --format RspecJunitFormatter \
-                            --out test_results/rspec.xml \
+                            --out /tmp/test-results/rspec.xml \
                             --format progress \
-                            $(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
+                            "${TEST_FILES}"
+          environment:
+            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
 
       # Save test results for timing analysis
       - store_test_results:
