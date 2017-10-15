@@ -1,47 +1,62 @@
-# Ruby CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-ruby/ for more details
-#
-
 version: 2
 jobs:
   build:
-    working_directory: ~/app
+    working_directory: /root/my-project
+
+    # ここは1.0でもあった実行対象ブランチ設定
+    branches:
+      only:
+        - master
+
+    # Dockerのimage設定はここで 今回はruby2.4.1とdatabaseにはpostgresql9.6.2(公式image)を利用
     docker:
-      - image: circleci/ruby:2.4.1-node-browsers
+      - image: ruby:2.4.1
+      - image: postgres:9.6.2
         environment:
-          RACK_ENV: 'test'
-      - image: mysql:5.7.17
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-          MYSQL_ROOT_HOST: '%'
+          POSTGRES_USER: root
+
+    # ここの下に処理を書いて行く模様
     steps:
-      - checkout
-      - run: bundle install
-      - run: bundle exec rails db:create
-      - run: bundle exec rails db:migrate
-      - run: bundle exec rspec
-      - deploy:
-          name: run deploy
+      # hosts設定
+      - run: echo 127.0.0.1 circlehost | tee -a /etc/hosts
+
+      # 必要なものをapt-getでインストール
+      - run:
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              apk add curl
-              curl --user ${CIRCLE_API_TOKEN}: \
-                --data build_parameters[CIRCLE_JOB]=deploy \
-                --data revision=$CIRCLE_SHA1 \
-                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH \
-                >> /dev/null
-            fi
-  deploy:
-    working_directory: ~/app
-    docker:
-      - image: circleci/ruby:2.4.1-node-browsers
-        environment:
-          RACK_ENV: 'production'
-    steps:
+            apt-get update -qq
+            apt-get install -y build-essential libpq-dev nodejs git --no-install-recommends
+            rm -rf /var/lib/apt/lists/*
+
+      # コードのチェックアウト
       - checkout
-      - run: bundle install
-      - setup_remote_docker
-      - deploy:
-          name: deploy
-          command: echo 'hello'
+
+      # bundle installのキャシュがあればそれを取ってくる
+      - restore_cache:
+          keys:
+            - dependency-cache-{{ checksum "Gemfile.lock" }}
+
+      # bundle install実行　上記でキャッシュがロードされればキャッシュが利用されるはず
+      - run: bundle install --path vendor/bundle
+
+      # bundle installのデータをキャッシュする
+      - save_cache:
+          key: dependency-cache-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+
+      # お決まりのコマンドでDBを生成
+      - run:
+          name: create test DB
+          environment:
+            RAILS_ENV: test
+            DATABASE_USER: root
+            DATABASE_HOST: circlehost
+          command: |
+            mv config/database.ci.yml config/database.yml
+            bin/rails db:create
+            bin/rails db:migrate
+
+      # テストの実行
+      - run:
+          name: run test
+          command: bundle exec rspec

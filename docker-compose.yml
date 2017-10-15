@@ -1,62 +1,42 @@
-version: 2
-jobs:
-  build:
-    working_directory: /root/my-project
+version: '2'
+services:
+  db:
+    image: mysql:5.7.17
+    volumes:
+      - /tmp/mysql:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  web:
+    command: sh -c 'rm tmp/pids/server.pid'
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
 
-    # ここは1.0でもあった実行対象ブランチ設定
-    branches:
-      only:
-        - master
+  spring:
+    build: .
+    command: docker/run.sh spring
+    user: "${uid}:${gid}"
+    working_dir: /app
+    environment:
+      RACK_ENV: 'development'
+    volumes:
+      - .:/app
 
-    # Dockerのimage設定はここで 今回はruby2.4.1とdatabaseにはpostgresql9.6.2(公式image)を利用
-    docker:
-      - image: ruby:2.4.1
-      - image: postgres:9.6.2
-        environment:
-          POSTGRES_USER: root
-
-    # ここの下に処理を書いて行く模様
-    steps:
-      # hosts設定
-      - run: echo 127.0.0.1 circlehost | tee -a /etc/hosts
-
-      # 必要なものをapt-getでインストール
-      - run:
-          command: |
-            apt-get update -qq
-            apt-get install -y build-essential libpq-dev nodejs git --no-install-recommends
-            rm -rf /var/lib/apt/lists/*
-
-      # コードのチェックアウト
-      - checkout
-
-      # bundle installのキャシュがあればそれを取ってくる
-      - restore_cache:
-          keys:
-            - dependency-cache-{{ checksum "Gemfile.lock" }}
-
-      # bundle install実行　上記でキャッシュがロードされればキャッシュが利用されるはず
-      - run: bundle install --path vendor/bundle
-
-      # bundle installのデータをキャッシュする
-      - save_cache:
-          key: dependency-cache-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
-
-      # お決まりのコマンドでDBを生成
-      - run:
-          name: create test DB
-          environment:
-            RAILS_ENV: test
-            DATABASE_USER: root
-            DATABASE_HOST: circlehost
-          command: |
-            mv config/database.ci.yml config/database.yml
-            bin/rails db:create
-            bin/rails db:migrate
-
-      # テストの実行
-      - run:
-          name: run test
-          command: bundle exec rspec
+  web:
+    build: .
+    #command: bundle exec rails s -b '0.0.0.0'
+    # vagrant上はこちらを使用
+    command: bundle exec rails s
+    user: "${uid}:${gid}"
+    working_dir: /app
+    environment:
+      RACK_ENV: 'development'
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - spring
