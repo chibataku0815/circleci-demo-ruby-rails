@@ -1,42 +1,42 @@
 version: 2
 jobs:
   build:
-    parallelism: 3
-    working_directory: ~/circleci-demo-ruby-rails
+    working_directory: /app
     docker:
       - image: circleci/ruby:2.4.1-node
         environment:
-          RAILS_ENV: test
-      - image: circleci/postgres:9.4.12-alpine
+          RACK_ENV: 'test'
+      - image: mysql:5.7.17
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_ROOT_HOST: '%'
     steps:
       - checkout
-
-      # Restore bundle cache
-      - restore_cache:
-          key: rails-demo-{{ checksum "Gemfile.lock" }}
-
-      # Bundle install dependencies
-      - run: bundle install --path vendor/bundle
-
-      # Store bundle cache
-      - save_cache:
-          key: rails-demo-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
-
-      # Database setup
-      - run: bundle exec rake db:create
-      - run: bundle exec rake db:schema:load
-
-      # Run rspec in parallel
-      - type: shell
-        command: |
-          bundle exec rspec --profile 10 \
-                            --format RspecJunitFormatter \
-                            --out test_results/rspec.xml \
-                            --format progress \
-                            $(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
-
-      # Save test results for timing analysis
-      - store_test_results:
-          path: test_results
+      - run: bundle install
+      - run: bundle exec rails db:create
+      - run: bundle exec rails db:migrate
+      - run: bundle exec rspec
+      - deploy:
+          name: run deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              apk add curl
+              curl --user ${CIRCLE_API_TOKEN}: \
+                --data build_parameters[CIRCLE_JOB]=deploy \
+                --data revision=$CIRCLE_SHA1 \
+                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH \
+                >> /dev/null
+            fi
+  deploy:
+    working_directory: /app
+    docker:
+      - image: circleci/ruby:2.4.1-node
+        environment:
+          RACK_ENV: 'production'
+    steps:
+      - checkout
+      - run: bundle install
+      - setup_remote_docker
+      - deploy:
+          name: deploy
+          command: echo 'hello'
