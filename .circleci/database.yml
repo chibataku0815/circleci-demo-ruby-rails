@@ -1,8 +1,2 @@
-test:
-  adapter: mysql
-  encoding: utf8
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  username: <%= ENV.fetch('DATABASE_USER') { 'root' } %>
-  host: <%= ENV.fetch('DATABASE_HOST') { 'localhost' } %>
-  port: <%= ENV.fetch('DATABASE_PORT') { 5432 } %>
-  database: myapp_test
+host:
+  <%= ENV['DB_HOST'] || ENV['MYSQL_ROOT_HOST'] || '127.0.0.1' %>
