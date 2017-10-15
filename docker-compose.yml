@@ -1,58 +1,42 @@
-version: 2
-jobs:
-  build:
-    docker:
-      - image: circleci/ruby:2.4.1-node
-        environment:
-          RAILS_ENV: test
-      - image: circleci/postgres:9.4.12-alpine
-        # 環境情報を追加
-        environment:
-        - POSTGRES_USER=ubuntu
-        - POSTGRES_DB=myapp_test
-    # ディレクトリ情報を移動（こうしないとエラーになる）
-    working_directory: ~/myapp
-    steps:
-      - checkout
+version: '2'
+services:
+  db:
+    image: mysql:5.7.17
+    volumes:
+      - /tmp/mysql:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  web:
+    command: sh -c 'rm tmp/pids/server.pid'
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
 
-      # Restore bundle cache
-      - restore_cache:
-          key: rails-demo-{{ checksum "Gemfile.lock" }}
+  spring:
+    build: .
+    command: docker/run.sh spring
+    user: "${uid}:${gid}"
+    working_dir: /app
+    environment:
+      RACK_ENV: 'development'
+    volumes:
+      - .:/app
 
-      # Bundle install dependencies
-      - run: bundle install --path vendor/bundle
-
-      # Store bundle cache
-      - save_cache:
-          key: rails-demo-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
-
-      # Database setup
-      # DBのセットアップを修正
-      - run:
-          name: Database setup
-          command: |
-            bundle exec rake db:create db:schema:load --trace
-            bundle exec rake db:migrate
-          environment:
-            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
-
-      # run tests!
-      # RSpecの実行も修正
-      - run:
-          name: run tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
-            bundle exec rspec --format progress \
-                            --format RspecJunitFormatter \
-                            --out /tmp/test-results/rspec.xml \
-                            --format progress \
-                            "${TEST_FILES}"
-          environment:
-            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
-
-      # Save test results for timing analysis
-      - store_test_results:
-          path: test_results
+  web:
+    build: .
+    #command: bundle exec rails s -b '0.0.0.0'
+    # vagrant上はこちらを使用
+    command: bundle exec rails s
+    user: "${uid}:${gid}"
+    working_dir: /app
+    environment:
+      RACK_ENV: 'development'
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - spring
