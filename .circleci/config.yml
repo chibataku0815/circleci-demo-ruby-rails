@@ -1,75 +1,41 @@
 version: 2
 jobs:
   build:
+    parallelism: 3
+    working_directory: ~/circleci-demo-ruby-rails
     docker:
       - image: circleci/ruby:2.4.1-node
         environment:
-        - PG_HOST=localhost
-        - PG_USER=ubuntu
-        - RAILS_ENV=test
-        - RACK_ENV=test
-      - image: postgres:9.5
-        environment:
-        - POSTGRES_USER=ubuntu
-        - POSTGRES_DB=myapp_test
-    working_directory: ~/myapp
-
+          RAILS_ENV: test
+      - image: circleci/postgres:9.4.12-alpine
     steps:
       - checkout
 
-      # Download and cache dependencies
+      # Restore bundle cache
       - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "Gemfile.lock" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
+          key: rails-demo-{{ checksum "Gemfile.lock" }}
 
-      - run:
-          name: install dependencies
-          command: |
-            bundle install --jobs=4 --retry=3 --path vendor/bundle
+      # Bundle install dependencies
+      - run: bundle install --path vendor/bundle
+
+      # Store bundle cache
       - save_cache:
+          key: rails-demo-{{ checksum "Gemfile.lock" }}
           paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "Gemfile.lock" }}
-
-      # # Rubocop Check
-      # - run:
-      #     name: RuboCop Style Check
-      #     command: bundle exec rubocop
-      #
-      # # Haml Check
-      # - run:
-      #     name: Haml-Linter Style Check
-      #     command: bundle exec haml-lint app/views/
-      #
-      # # SCSS Check
-      # - run:
-      #     name: SCSS-Linter Style Check
-      #     command: bundle exec scss-lint app/assets/
+            - vendor/bundle
 
       # Database setup
-      - run:
-          name: Database setup
-          command: |
-            bundle exec rake db:create db:schema:load --trace
-            bundle exec rake db:migrate
-          environment:
-            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
+      - run: bundle exec rake db:create
+      - run: bundle exec rake db:schema:load
 
-      # run tests!
-      - run:
-          name: run tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
-            bundle exec rspec --format progress \
+      # Run rspec in parallel
+      - type: shell
+        command: |
+          bundle exec rspec --profile 10 \
                             --format RspecJunitFormatter \
-                            --out /tmp/test-results/rspec.xml \
+                            --out test_results/rspec.xml \
                             --format progress \
-                            "${TEST_FILES}"
-          environment:
-            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
+                            $(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
 
       # Save test results for timing analysis
       - store_test_results:

@@ -1,4 +1,4 @@
-FROM ruby:2.4.1-alpine
+FROM ruby:2.4.1-node
 
 ENV LANG ja_JP.UTF-8
 ENV BUILD_PACKAGES="curl-dev build-base" \
