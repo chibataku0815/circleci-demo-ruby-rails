@@ -1,0 +1,41 @@
+version: '2'
+services:
+  db:
+    image: mysql:5.7.17
+    volumes:
+      - /tmp/mysql:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  web:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+
+  spring:
+    build: .
+    command: docker/run.sh spring
+    user: "${uid}:${gid}"
+    working_dir: /app
+    environment:
+      RACK_ENV: 'development'
+    volumes:
+      - .:/app
+
+  web:
+    build: .
+    #command: bundle exec rails s -b '0.0.0.0'
+    # vagrant上はこちらを使用
+    command: bundle exec rails s
+    user: "${uid}:${gid}"
+    working_dir: /app
+    environment:
+      RACK_ENV: 'development'
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - spring
