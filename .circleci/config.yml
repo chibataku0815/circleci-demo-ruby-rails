@@ -2,6 +2,50 @@
 #
 # Check https://circleci.com/docs/2.0/language-ruby/ for more details
 #
+
+version: 2
+jobs:
+  build:
+    working_directory: /app
+    docker:
+      - image: circleci/ruby:2.4.1-node-browsers
+        environment:
+          RACK_ENV: 'test'
+      - image: mysql:5.7.17
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_ROOT_HOST: '%'
+    steps:
+      - checkout
+      - run: bundle install
+      - run: bundle exec rails db:create
+      - run: bundle exec rails db:migrate
+      - run: bundle exec rspec
+      - deploy:
+          name: run deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              apk add curl
+              curl --user ${CIRCLE_API_TOKEN}: \
+                --data build_parameters[CIRCLE_JOB]=deploy \
+                --data revision=$CIRCLE_SHA1 \
+                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH \
+                >> /dev/null
+            fi
+  deploy:
+    working_directory: /app
+    docker:
+      - image: circleci/ruby:2.4.1-node-browsers
+        environment:
+          RACK_ENV: 'production'
+    steps:
+      - checkout
+      - run: bundle install
+      - setup_remote_docker
+      - deploy:
+          name: deploy
+          command: echo 'hello'
+
 version: 2
 jobs:
   build:
@@ -12,19 +56,12 @@ jobs:
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
-      - image: circleci/mysql:5.7.18
+      # - image: circleci/postgres:9.4
 
     working_directory: ~/repo
 
     steps:
-    - checkout
-    - restore_cache:
-        keys:
-          - gem-cache-{{ arch }}-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
-    - save_cache:
-        key: gem-cache-{{ arch }}-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
-        paths:
-          - vendor/bundle
+      - checkout
 
       # Download and cache dependencies
       - restore_cache:
