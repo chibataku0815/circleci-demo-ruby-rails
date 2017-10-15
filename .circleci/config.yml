@@ -1,56 +1,46 @@
+# Ruby CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-ruby/ for more details
+#
 version: 2
 jobs:
   build:
+    working_directory: /app
     docker:
       - image: circleci/ruby:2.4.1-node
         environment:
-          RAILS_ENV: test
-      - image: circleci/mysql:5.7.17
-        # 環境情報を追加
+          RACK_ENV: 'test'
+      - image: mysql:5.7.17
         environment:
-        - POSTGRES_USER=ubuntu
-        - POSTGRES_DB=myapp_test
-    # ディレクトリ情報を移動（こうしないとエラーになる）
-    working_directory: ~/myapp
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_ROOT_HOST: '%'
     steps:
       - checkout
-
-      # Restore bundle cache
-      - restore_cache:
-          key: rails-demo-{{ checksum "Gemfile.lock" }}
-
-      # Bundle install dependencies
-      - run: bundle install --path vendor/bundle
-
-      # Store bundle cache
-      - save_cache:
-          key: rails-demo-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
-
-      # Database setup
-      # DBのセットアップを修正
-      - run:
-          name: Database setup
+      - run: bundle install
+      - run: bundle exec rails db:create
+      - run: bundle exec rails db:migrate
+      - run: bundle exec rspec
+      - deploy:
+          name: run deploy
           command: |
-            bundle exec rake db:create db:schema:load --trace
-            bundle exec rake db:migrate
-
-      # run tests!
-      # RSpecの実行も修正
-      - run:
-          name: run tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
-            bundle exec rspec --format progress \
-                            --format RspecJunitFormatter \
-                            --out /tmp/test-results/rspec.xml \
-                            --format progress \
-                            "${TEST_FILES}"
-          environment:
-            DATABASE_URL: "postgres://ubuntu@localhost:5432/myapp_test"
-
-      # Save test results for timing analysis
-      - store_test_results:
-          path: test_results
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              apk add curl
+              curl --user ${CIRCLE_API_TOKEN}: \
+                --data build_parameters[CIRCLE_JOB]=deploy \
+                --data revision=$CIRCLE_SHA1 \
+                https://circleci.com/api/v1.1/project/github/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/tree/$CIRCLE_BRANCH \
+                >> /dev/null
+            fi
+  deploy:
+    working_directory: /app
+    docker:
+      - image: circleci/ruby:2.4.1-node
+        environment:
+          RACK_ENV: 'production'
+    steps:
+      - checkout
+      - run: bundle install
+      - setup_remote_docker
+      - deploy:
+          name: deploy
+          command: echo 'hello'
