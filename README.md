@@ -1,24 +1,13 @@
-# README
+# CircleCI Demo Application: Ruby on Rails [![CircleCI](https://circleci.com/gh/CircleCI-Public/circleci-demo-ruby-rails.svg?style=svg)](https://circleci.com/gh/CircleCI-Public/circleci-demo-ruby-rails)
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This is an example application showcasing how to run a Ruby on Rails app on CircleCI 2.0.
 
-Things you may want to cover:
+You can follow along with this project by reading the [documentation](https://circleci.com/docs/2.0/language-ruby/).
 
-* Ruby version
+## License
 
-* System dependencies
+Copyright (c) 2017 CircleCI
 
-* Configuration
+Distributed under the MIT License. See the file COPYING.
 
-* Database creation
 
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
