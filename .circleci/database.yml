@@ -1,2 +1,10 @@
-host:
-  <%= ENV['DB_HOST'] || ENV['MYSQL_ROOT_HOST'] || '127.0.0.1' %>
+test:
+  adapter: mysql2
+  pool: 5
+  timeout: 5000
+  encoding: utf8
+  port: 3306
+  database: dummy_test
+  username: root
+  password:
+  host: localhost

@@ -3,13 +3,12 @@ jobs:
   build:
     working_directory: ~/app
     docker:
-      - image: circleci/ruby:2.4.1-node
-        environment:
-          RACK_ENV: 'test'
-      - image: mysql:5.7.17
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-          MYSQL_ROOT_HOST: '%'
+      - image: alienfast/ruby:latest
+        env:
+          - RAILS_ENV=test
+      - image: library/mysql:latest
+        env:
+          - MYSQL_ALLOW_EMPTY_PASSWORD=true
     steps:
       - checkout
       - run: bundle install
