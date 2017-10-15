@@ -50,10 +50,6 @@ jobs:
             RAILS_ENV: test
             DATABASE_USER: root
             DATABASE_HOST: circlehost
-          command: |
-            mv config/database.ci.yml config/database.yml
-            bin/rails db:create
-            bin/rails db:migrate
 
       # テストの実行
       - run:
