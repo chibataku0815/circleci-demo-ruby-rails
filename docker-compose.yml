@@ -7,6 +7,7 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
   web:
+    command: sh -c 'rm tmp/pids/server.pid'
     build: .
     volumes:
       - .:/app
