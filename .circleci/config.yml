@@ -50,6 +50,7 @@ jobs:
             RAILS_ENV: test
             DATABASE_USER: root
             DATABASE_HOST: circlehost
+          command: |
 
       # テストの実行
       - run:
