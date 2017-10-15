@@ -1,11 +1,11 @@
 version: '2'
 services:
   db:
-    image: postgres:9.6.2
+    image: mysql:5.7.17
     volumes:
       - /tmp/mysql:/var/lib/mysql
     environment:
-      POSTGRES_USER: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
   web:
     command: sh -c 'rm tmp/pids/server.pid'
     build: .

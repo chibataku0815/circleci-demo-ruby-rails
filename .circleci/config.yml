@@ -1,9 +1,10 @@
 version: 2
 jobs:
   build:
+    parallelism: 3
     working_directory: ~/app
     docker:
       - image: circleci/ruby:2.4.1-node
-    steps:
-      - checkout
-      - run: echo "hello world"
+        environment:
+          RAILS_ENV: test
+      - image: circleci/postgres:9.4.12-alpine
